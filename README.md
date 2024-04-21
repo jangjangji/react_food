@@ -1,70 +1,191 @@
-# Getting Started with Create React App
+# 설정
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## .prettierrc설정
 
-## Available Scripts
+```json
+{
+  "singleQuote": true,
+  "useTabs": false,
+  "tabWidth": 2,
+  "semi": true,
+  "trailingComma": "all"
+}
+```
 
-In the project directory, you can run:
+## 의존성
 
-### `yarn start`
+- 의존성 설치 -> 필요 라이브러리
+  - react-router-dom: 라우터
+  - sass, styled-components, classnames: 스타일링 목적
+  - immer: 불변성 관리
+  - react-icons: 리액트에서 제공하는 아이콘 라이브러리
+  - @loadable/component: 지연로딩
+  - react-helmet-async: head 태그 내의 특정 태그의 내용을 변경할 때 사용
+   > SPA에서 React를 사용할때 페이지간 동적으로 `<head>` 요소를 변경시 각 페이지마다 다른 제목, 스타일 시트 등등 설정하고 제어 할 수 있도록 사용한다.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## react-helmet-async 설정
+- src/index.js
+``` js
+import { HelmetProvider } from 'react-helmet-async';
+...
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+root.render(
+  <React.StrictMode>
+    <HelmetProvider>
+      <App />
+    </HelmetProvider>
+  </React.StrictMode>,
+);
 
-### `yarn test`
+...
+```
+- 사용법
+```js
+import { Helmet } from 'react-helmet-async';
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+const App = () => {
+  return (
+    <>
+      <Helmet>
+        <title>사이트 제목 변경 테스트</title>
+      </Helmet>
+    </>
+  );
+};
 
-### `yarn build`
+export default App;
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+# 메시지 다국어 처리
+- 의존성: i18next, react-i18next
+- 의존성 설치
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```js
+yarn add i18next react-i18next
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+- 언어 파일 생성 (해당 언어에 맞는 json 파일 만들기)
+  - `src/language/ko`, `src/language/en` 폴더 생성
+  - 각 폴더별로 공통 문구: `commons.js`, 검증 문구: `validations.js`, 에러문구: `errors.js`
 
-### `yarn eject`
+- 언어 파일 통합: 예) `src/languages/ko/index.js`
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```js
+import commons from './commons';
+import validations from './validations';
+import errors from './errors';
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+const ko = { ...commons, ...validations, ...errors };
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+export default ko;
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+```
 
-## Learn More
+- 설정 파일 구성: `src/i18n.js`
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```js
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+import ko from './languages/ko'; // ko/index.js
+import en from './languages/en';
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+const resources = {
+  en: {
+    translation: en,
+  },
+  ko: {
+    translation: ko,
+  },
+};
 
-### Code Splitting
+i18n.use(initReactI18next).init({
+  resources, //설정명과 객체명 동일하게 만들어주면 resources:resources라고 해줄 필요없이 하나로 가능
+  lng: 'ko',
+});
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+```
+- 설정 반영: `src/index.js`
 
-### Analyzing the Bundle Size
+```js
+...
+import './i18n';
+...
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+```
 
-### Making a Progressive Web App
+- 적용하기: useTranslation 훅을 통해서 사용가능/ react-i18next
+  - t: 메시지 조회 함수
+  - i18n: 편의 기능 객체(changeLanguage(..): 언어 변경함수 - 제일 많이 씀)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+```js
+import { Helmet } from 'react-helmet-async';
+import { useTranslation } from 'react-i18next';
 
-### Advanced Configuration
+const App = () => {
+  const { t, i18n } = useTranslation();
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+  return (
+    <>
+      <Helmet>
+        <title>사이트 제목 변경 테스트</title>
+      </Helmet>
+      <div>{t('아이디')}</div>
+      <div>{t('약관에_동의')}</div>
+      <div>{t('없는_문구')}</div>
+      <button type="button" onClick={() => i18n.changeLanguage('ko')}>
+        한국어
+      </button>
+      <button type="button" onClick={() => i18n.changeLanguage('en')}>
+        English
+      </button>
+    </>
+  );
+};
 
-### Deployment
+export default App;
+```
+  > i18n.changeLanguage(): 언어를 변환해주는 함수
+    t function `t('resource key)` 형태로 언어 리소스 key를 입력 하면 해당 언어값을 출력해준다.
+    useTranslation(): 함수형 컴포넌트에서 tfunction과 i18n 인스턴스를 사용할 수 있게 해주는 훅이다.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+# 레이아웃 구성
+- `src/layouts/MainLayout.js`
+- `src/outlines/Header.js`
+- `src/outlines/Footer.js`
 
-### `yarn build` fails to minify
+# 라우팅 구성
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## 설정
+- `src/index.js`: BrowserRouter 컴포넌트로 감싸기
+
+```js
+...
+import { BrowserRouter } from 'react-router-dom';
+...
+root.render(
+  <React.StrictMode>
+    <HelmetProvider>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </HelmetProvider>
+  </React.StrictMode>,
+);
+
+```
+
+## 메인 페이지
+- /: 메인 페이지 경로
+
+## 회원
+- /member/join: 회원가입 페이지 경로
+- /member/login: 로그인 페이지 경로
+
+## 없는 페이지
+- /-: 없는 페이지(`commons/pages/NotFound.js`)
+
+## 에러 페이지
+>class형 컴포넌트: componentDidCatch 사용
+
+- `commons/pages/Error.js`
+- `commons/components/ErrorDisplay.js`
